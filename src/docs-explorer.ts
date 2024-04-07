@@ -2,111 +2,96 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import marked from 'marked';
+import { dir } from 'console';
 
-export class TOCTreeProvider implements vscode.TreeDataProvider<TOCItem> {
-  constructor(private workspaceRoot: string) {}
+export class MarkdownViewProvider implements vscode.WebviewViewProvider {
+  private webviewView: vscode.WebviewView | undefined;
+  private filepath: string | null = null;
+  private nearestMarkdownFile: string | null = null;
 
-  getTreeItem(element: TOCItem): vscode.TreeItem {
-    return element;
+  constructor(filepath: string | null) {
+    this.filepath = filepath;
+    this.nearestMarkdownFile = this.findNearestMarkdownFile(filepath);
   }
-
-  getChildren(element?: TOCItem): Thenable<TOCItem[]> {
-    if (!this.workspaceRoot) {
-      vscode.window.showInformationMessage('No TOCItem in empty workspace');
-      return Promise.resolve([]);
-    }
-
-    const children: TOCItem[] = [];
-    const currPath = element ? element.path : this.workspaceRoot;
-    for (const file of this.walkSync(currPath)) {
-      const isMarkdown = file.endsWith('.md');
-      if (!isMarkdown) {
-        continue;
-      }
-
-      const relativePath = path.relative(currPath, file);
-      const isFirstLevel = relativePath.split(path.sep).length === 1;
-      if (!isFirstLevel) {
-        const firstDir = relativePath.split(path.sep)[0];
-        const firstDirPath = path.join(currPath, firstDir);
-        const firstDirLabel = path.basename(firstDir);
-        const foundMatchingChild = children.find(child => child.path === firstDirPath);
-        if (!foundMatchingChild) {
-          children.push(new TOCItem(firstDirPath, firstDirLabel, vscode.TreeItemCollapsibleState.Collapsed));
-        }
-        continue;
-      }
-
-      const label = path.basename(file);
-      children.push(new TOCItem(file, label, vscode.TreeItemCollapsibleState.None));
-    }
-
-    return Promise.resolve(children);
-  }
-
-  private *walkSync(dir:string): Iterable<string> {
-    const files = fs.readdirSync(dir, { withFileTypes: true });
-    for (const file of files) {
-      if (file.isDirectory()) {
-        yield* this.walkSync(path.join(dir, file.name));
-      } else {
-        yield path.join(dir, file.name);
-      }
-    }
-  }
-}
-
-class TOCItem extends vscode.TreeItem {
-  constructor(
-    public readonly path: string,
-    public readonly label: string,
-    public readonly collapsibleState: vscode.TreeItemCollapsibleState
-  ) {
-    super(label, collapsibleState);
-    this.path = path;
-    this.tooltip = `${this.label}`;
-    this.description = this.label;
-
-    const isDirectory = fs.lstatSync(this.path).isDirectory();
-    this.iconPath = isDirectory ? new vscode.ThemeIcon('folder') : new vscode.ThemeIcon('markdown');
-  }
-
-  // iconPath = new vscode.ThemeIcon('file-text');
-
-  command = {
-    command: 'docs-explorer.openFile',
-    title: 'Open File',
-    arguments: [this]
-  };
-}
-
-
-export class DocViewProvider implements vscode.WebviewViewProvider {
-  webviewView: vscode.WebviewView | undefined;
-  constructor(private treeItem: TOCItem | null) {}
 
   resolveWebviewView(
     webviewView: vscode.WebviewView,
     context: vscode.WebviewViewResolveContext,
     token: vscode.CancellationToken
   ) {
-    this.webviewView = webviewView;
     webviewView.webview.options = {
       enableScripts: true
     };
-    webviewView.webview.html = this.getWebviewContent();
-
+    this.webviewView = webviewView;
+    this.renderWebviewView();
   }
 
-  update(treeItem: TOCItem) {
-    this.treeItem = treeItem;
-    if (this.webviewView) {
-      this.webviewView.webview.html = this.getWebviewContent();
+  renderWebviewView() {
+    if (!this.webviewView) {
+      return;
     }
+    this.webviewView.webview.html = this.getWebviewContent();
+  }
+
+  update(filepath: string | null) {
+    this.filepath = filepath;
+    this.nearestMarkdownFile = this.findNearestMarkdownFile(filepath);
+    this.renderWebviewView();
+  }
+
+  private findNearestMarkdownFile(filepath: string | null): string | null {
+    if (!filepath) {
+      return null;
+    }
+
+    const isMarkdown = filepath.endsWith('.md');
+    if (isMarkdown) {
+      return filepath;
+    }
+
+    let foundMarkdownFile = null;
+
+    const isDirectory = fs.lstatSync(filepath).isDirectory();
+    if (isDirectory) {
+      const files = fs.readdirSync(filepath);
+      const readmeFile = files.find((file) => file === 'README.md');
+      if (readmeFile) {
+        foundMarkdownFile = readmeFile;
+      } else {
+        foundMarkdownFile = files.find((file) => file.endsWith('.md'));
+      }
+
+      if (foundMarkdownFile) {
+        return path.join(filepath, foundMarkdownFile);
+      }
+    }
+
+    const parentDirs = filepath?.split('/').slice(0, -1);
+		if (!parentDirs) {
+      return null;
+		}
+
+		for (let i = parentDirs.length; i >= 0; i-=1) {
+			const dirPath = parentDirs.slice(0, i).join('/');
+			const files = fs.readdirSync(dirPath);
+			const readmeFile = files.find((file) => file === 'README.md');
+			if (readmeFile) {
+				foundMarkdownFile = readmeFile;
+			} else {
+        foundMarkdownFile = files.find((file) => file.endsWith('.md'));
+      }
+
+      if (foundMarkdownFile) {
+        return path.join(dirPath, foundMarkdownFile);
+      }
+		}
+
+    return null;
   }
 
   getWebviewContent() {
-    const fileContents = this.treeItem ? fs.readFileSync(this.treeItem.path, 'utf-8') : '';
+    console.log('this.nearestMarkdownFile', this.filepath, this.nearestMarkdownFile);
+    const fileContents = this.nearestMarkdownFile ? fs.readFileSync(this.nearestMarkdownFile, 'utf-8') : '';
     const markdown = marked.parse(fileContents);
     return `<!DOCTYPE html>
     <html lang="en">

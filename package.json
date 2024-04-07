@@ -12,25 +12,11 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "docs-explorer-view-container",
-          "title": "Docs Explorer",
-          "icon": "media/logo.svg"
-        }
-      ]
-    },
     "views": {
-      "docs-explorer-view-container": [
-        {
-          "id": "docs-explorer.toc",
-          "name": "Table of Contents",
-          "type": "tree"
-        },
+      "explorer": [
         {
           "id": "docs-explorer.viewer",
-          "name": "Document Viewer",
+          "name": "Docs Explorer",
           "type": "webview"
         }
       ]

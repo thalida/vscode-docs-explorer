@@ -10,7 +10,12 @@ export function activate(context: vscode.ExtensionContext) {
 		? vscode.workspace.workspaceFolders[0].uri.fsPath
 		: null;
 
-	const markdownViewProvider = new MarkdownViewProvider(rootPath);
+	const activePath = vscode.window.activeTextEditor?.document.uri.fsPath || rootPath;
+
+	const markdownViewProvider = new MarkdownViewProvider(
+		rootPath,
+		activePath
+	);
 
 	context.subscriptions.push(vscode.window.registerWebviewViewProvider(
 		'docs-explorer.viewer',
@@ -19,10 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.window.onDidChangeActiveTextEditor((editor) => {
 		const file = editor?.document.uri.fsPath;
-		if (!file) {
-			return;
-		}
-		markdownViewProvider.update(file);
+		markdownViewProvider.update(file || null);
 	});
 }
 

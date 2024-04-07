@@ -2,16 +2,17 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import marked from 'marked';
-import { dir } from 'console';
 
 export class MarkdownViewProvider implements vscode.WebviewViewProvider {
   private webviewView: vscode.WebviewView | undefined;
+  private workspacePath: string | null = null;
   private filepath: string | null = null;
   private nearestMarkdownFile: string | null = null;
 
-  constructor(filepath: string | null) {
+  constructor(workspacePath: string | null, filepath: string | null) {
+    this.workspacePath = workspacePath;
     this.filepath = filepath;
-    this.nearestMarkdownFile = this.findNearestMarkdownFile(filepath);
+    this.nearestMarkdownFile = this.findNearestMarkdownFile(this.filepath);
   }
 
   resolveWebviewView(
@@ -35,7 +36,7 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
 
   update(filepath: string | null) {
     this.filepath = filepath;
-    this.nearestMarkdownFile = this.findNearestMarkdownFile(filepath);
+    this.nearestMarkdownFile = this.findNearestMarkdownFile(this.filepath);
     this.renderWebviewView();
   }
 
@@ -49,20 +50,11 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
       return filepath;
     }
 
-    let foundMarkdownFile = null;
-
     const isDirectory = fs.lstatSync(filepath).isDirectory();
     if (isDirectory) {
-      const files = fs.readdirSync(filepath);
-      const readmeFile = files.find((file) => file === 'README.md');
-      if (readmeFile) {
-        foundMarkdownFile = readmeFile;
-      } else {
-        foundMarkdownFile = files.find((file) => file.endsWith('.md'));
-      }
-
-      if (foundMarkdownFile) {
-        return path.join(filepath, foundMarkdownFile);
+			const markdownFile = this.findNearestMarkdownFileInDirectory(filepath);
+      if (markdownFile) {
+        return markdownFile;
       }
     }
 
@@ -72,25 +64,39 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
 		}
 
 		for (let i = parentDirs.length; i >= 0; i-=1) {
-			const dirPath = parentDirs.slice(0, i).join('/');
-			const files = fs.readdirSync(dirPath);
-			const readmeFile = files.find((file) => file === 'README.md');
-			if (readmeFile) {
-				foundMarkdownFile = readmeFile;
-			} else {
-        foundMarkdownFile = files.find((file) => file.endsWith('.md'));
+      const dirPath = parentDirs.slice(0, i).join('/');
+			const markdownFile = this.findNearestMarkdownFileInDirectory(dirPath);
+      if (markdownFile) {
+        return markdownFile;
       }
 
-      if (foundMarkdownFile) {
-        return path.join(dirPath, foundMarkdownFile);
+      if (dirPath === this.workspacePath) {
+        break;
       }
 		}
 
     return null;
   }
 
+  private findNearestMarkdownFileInDirectory(dirPath: string): string | null {
+    let foundMarkdownFile: string | null | undefined = null;
+    const files = fs.readdirSync(dirPath);
+    const readmeFile = files.find((file) => file === 'README.md');
+
+    if (readmeFile) {
+      foundMarkdownFile = readmeFile;
+    } else {
+      foundMarkdownFile = files.find((file) => file.endsWith('.md'));
+    }
+
+    if (foundMarkdownFile) {
+      return path.join(dirPath, foundMarkdownFile);
+    }
+
+    return null;
+  }
+
   getWebviewContent() {
-    console.log('this.nearestMarkdownFile', this.filepath, this.nearestMarkdownFile);
     const fileContents = this.nearestMarkdownFile ? fs.readFileSync(this.nearestMarkdownFile, 'utf-8') : '';
     const markdown = marked.parse(fileContents);
     return `<!DOCTYPE html>

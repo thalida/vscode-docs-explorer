@@ -27,6 +27,15 @@ export function activate(context: vscode.ExtensionContext) {
 		const file = editor?.document.uri.fsPath;
 		markdownViewProvider.update(file || null);
 	});
+
+	vscode.workspace.onDidChangeTextDocument((event) => {
+		const file = event.document.uri.fsPath;
+		const isMarkdown = file.endsWith('.md');
+		if (!isMarkdown) {
+			return;
+		}
+		markdownViewProvider.update(file);
+	});
 }
 
 export function deactivate() {}

@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as ejs from 'ejs';
-import { json } from 'stream/consumers';
 
 
 export class MarkdownViewProvider implements vscode.WebviewViewProvider {
@@ -111,5 +109,4 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     const compiledTemplate = templateStr.replace("\"${fileData}\"", JSON.stringify(markdownFileData));
     return compiledTemplate;
   }
-
 }

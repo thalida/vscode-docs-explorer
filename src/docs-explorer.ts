@@ -9,12 +9,13 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
   private workspacePath: string | null = null;
   private filepath: string | null = null;
   private nearestMarkdownFile: string | null = null;
+  private isPinned: boolean = false;
+  private pinnedFile: string | null = null;
 
   constructor(context: vscode.ExtensionContext, workspacePath: string | null, filepath: string | null) {
     this.extensionContext = context;
     this.workspacePath = workspacePath;
     this.filepath = filepath;
-    this.nearestMarkdownFile = this.findNearestMarkdownFile(this.filepath);
   }
 
   resolveWebviewView(
@@ -27,6 +28,7 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     };
     this.webviewView = webviewView;
     this.renderWebviewView();
+    vscode.commands.executeCommand('setContext', 'docs-explorer.context.isPinned', this.isPinned);
   }
 
   async renderWebviewView() {
@@ -38,11 +40,30 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
 
   update(filepath: string | null) {
     this.filepath = filepath;
-    this.nearestMarkdownFile = this.findNearestMarkdownFile(this.filepath);
     this.renderWebviewView();
   }
 
-  private findNearestMarkdownFile(filepath: string | null): string | null {
+  pinDocument() {
+    this.setIsPinned(true);
+  }
+
+  unpinDocument() {
+    this.setIsPinned(false);
+  }
+
+
+  setIsPinned(state: boolean) {
+    if (!this.webviewView) {
+      return;
+    }
+
+    this.isPinned = state;
+    this.pinnedFile = this.isPinned ? this.filepath : null;
+    vscode.commands.executeCommand('setContext', 'docs-explorer.context.isPinned', this.isPinned);
+    this.renderWebviewView();
+  }
+
+  private findMarkdownFile(filepath: string | null): string | null {
     if (!filepath) {
       return null;
     }
@@ -54,7 +75,7 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
 
     const isDirectory = fs.lstatSync(filepath).isDirectory();
     if (isDirectory) {
-			const markdownFile = this.findNearestMarkdownFileInDirectory(filepath);
+			const markdownFile = this.findNearestMarkdownFile(filepath);
       if (markdownFile) {
         return markdownFile;
       }
@@ -67,7 +88,7 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
 
 		for (let i = parentDirs.length; i >= 0; i-=1) {
       const dirPath = parentDirs.slice(0, i).join('/');
-			const markdownFile = this.findNearestMarkdownFileInDirectory(dirPath);
+			const markdownFile = this.findNearestMarkdownFile(dirPath);
       if (markdownFile) {
         return markdownFile;
       }
@@ -80,7 +101,7 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     return null;
   }
 
-  private findNearestMarkdownFileInDirectory(dirPath: string): string | null {
+  private findNearestMarkdownFile(dirPath: string): string | null {
     let foundMarkdownFile: string | null | undefined = null;
     const files = fs.readdirSync(dirPath);
     const readmeFile = files.find((file) => file.toLowerCase() === 'readme.md');
@@ -98,11 +119,23 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     return null;
   }
 
-  async getWebviewContent() {
-    if (!this.extensionContext) {
+  private getRelativePath(filepath: string): string {
+    if (!this.workspacePath) {
       return '';
     }
 
+    return path.relative(this.workspacePath, filepath);
+  }
+
+  async getWebviewContent() {
+    if (!this.extensionContext || !this.webviewView) {
+      return '';
+    }
+
+    const currFile = this.isPinned ? this.pinnedFile : this.filepath;
+
+    this.nearestMarkdownFile = this.findMarkdownFile(currFile);
+    this.webviewView.title = this.nearestMarkdownFile ? `Document Viewer - ${this.getRelativePath(this.nearestMarkdownFile)}` : 'Document Viewer';
     const markdownFileData = this.nearestMarkdownFile ? fs.readFileSync(this.nearestMarkdownFile, 'utf-8') : '';
     const template = vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'templates', 'doc-viewer.html');
     const templateStr = fs.readFileSync(template.fsPath, 'utf-8');

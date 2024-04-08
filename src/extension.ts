@@ -23,19 +23,45 @@ export function activate(context: vscode.ExtensionContext) {
 		markdownViewProvider
 	));
 
-	vscode.window.onDidChangeActiveTextEditor((editor) => {
+	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((editor) => {
 		const file = editor?.document.uri.fsPath;
 		markdownViewProvider.update(file || null);
-	});
+	}));
 
-	vscode.workspace.onDidChangeTextDocument((event) => {
+	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((event) => {
 		const file = event.document.uri.fsPath;
 		const isMarkdown = file.endsWith('.md');
 		if (!isMarkdown) {
 			return;
 		}
 		markdownViewProvider.update(file);
-	});
+	}));
+
+	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
+		const file = document.uri.fsPath;
+		const isMarkdown = file.endsWith('.md');
+		if (!isMarkdown) {
+			return;
+		}
+		markdownViewProvider.update(file);
+	}));
+
+	context.subscriptions.push(vscode.workspace.onDidCreateFiles((event) => {
+		const file = event.files[0].fsPath;
+		const isMarkdown = file.endsWith('.md');
+		if (!isMarkdown) {
+			return;
+		}
+		markdownViewProvider.update(file);
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('docs-explorer.viewer.pinDocument', () => {
+		markdownViewProvider.pinDocument();
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('docs-explorer.viewer.unpinDocument', () => {
+		markdownViewProvider.unpinDocument();
+	}));
 }
 
 export function deactivate() {}

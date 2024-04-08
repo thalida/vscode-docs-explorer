@@ -20,7 +20,39 @@
           "type": "webview"
         }
       ]
-    }
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "docs-explorer.viewer.pinDocument",
+          "when": "view == docs-explorer.viewer && docs-explorer.context.isPinned === false",
+          "group": "navigation"
+        },
+        {
+          "command": "docs-explorer.viewer.unpinDocument",
+          "when": "view == docs-explorer.viewer && docs-explorer.context.isPinned === true",
+          "group": "navigation"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "docs-explorer.viewer.pinDocument",
+        "title": "Pin Document",
+        "icon": {
+          "light": "./media/icons/light/pin.svg",
+          "dark": "./media/icons/dark/pin.svg"
+        }
+      },
+      {
+        "command": "docs-explorer.viewer.unpinDocument",
+        "title": "Un-pin Document",
+        "icon": {
+          "light": "./media/icons/light/unpin.svg",
+          "dark": "./media/icons/dark/unpin.svg"
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

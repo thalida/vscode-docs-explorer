@@ -21,6 +21,15 @@
     <main>
       <div id="content"></div>
       <script>
+        const injectedContext = {
+          fileData: "${fileData}",
+          activeFile: "${activeFile}",
+          shouldAutoScroll: "${shouldAutoScroll}",
+          isPinned: "${isPinned}",
+        }
+      </script>
+      <script>
+        const $content = document.getElementById('content');
         const { markedHighlight } = globalThis.markedHighlight;
         const customTemplate = `
         <figure class="preview">
@@ -39,9 +48,21 @@
                 return hljs.highlight(code, { language }).value;
               }
             }))
-            .parse("${fileData}")
+            .parse(injectedContext.fileData)
         );
-        document.getElementById('content').innerHTML = DOMPurify.sanitize(markdownHTML);
+        const santizedHTML = DOMPurify.sanitize(markdownHTML);
+        $content.innerHTML = santizedHTML;
+
+        if (injectedContext.shouldAutoScroll) {
+          const $captions = $content.querySelectorAll('figure.preview > figcaption');
+          if ($captions.length > 0) {
+            const activeCaption = Array.from($captions).find(caption => caption.textContent.toLowerCase() === injectedContext.activeFile.toLowerCase());
+            if (activeCaption) {
+              activeCaption.scrollIntoView();
+            }
+          }
+        }
+
       </script>
     </main>
   </body>

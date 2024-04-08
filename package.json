@@ -24,29 +24,55 @@
     "menus": {
       "view/title": [
         {
-          "command": "docs-explorer.viewer.pinDocument",
-          "when": "view == docs-explorer.viewer && docs-explorer.context.isPinned === false",
-          "group": "navigation"
+          "command": "docs-explorer.viewer.enableAutoScroll",
+          "when": "view == docs-explorer.viewer && docs-explorer.context.shouldAutoScroll === false",
+          "group": "navigation@1"
         },
         {
-          "command": "docs-explorer.viewer.unpinDocument",
+          "command": "docs-explorer.viewer.disableAutoScroll",
+          "when": "view == docs-explorer.viewer && docs-explorer.context.shouldAutoScroll === true",
+          "group": "navigation@2"
+        },
+        {
+          "command": "docs-explorer.viewer.pin",
+          "when": "view == docs-explorer.viewer && docs-explorer.context.isPinned === false",
+          "group": "navigation@3"
+        },
+        {
+          "command": "docs-explorer.viewer.unpin",
           "when": "view == docs-explorer.viewer && docs-explorer.context.isPinned === true",
-          "group": "navigation"
+          "group": "navigation@4"
         }
       ]
     },
     "commands": [
       {
-        "command": "docs-explorer.viewer.pinDocument",
-        "title": "Pin Document",
+        "command": "docs-explorer.viewer.enableAutoScroll",
+        "title": "Auto-scroll",
+        "icon": {
+          "light": "./media/icons/light/jump.svg",
+          "dark": "./media/icons/dark/jump.svg"
+        }
+      },
+      {
+        "command": "docs-explorer.viewer.disableAutoScroll",
+        "title": "Stop auto-scrolling",
+        "icon": {
+          "light": "./media/icons/light/jump-selected.svg",
+          "dark": "./media/icons/dark/jump-selected.svg"
+        }
+      },
+      {
+        "command": "docs-explorer.viewer.pin",
+        "title": "Pin",
         "icon": {
           "light": "./media/icons/light/pin.svg",
           "dark": "./media/icons/dark/pin.svg"
         }
       },
       {
-        "command": "docs-explorer.viewer.unpinDocument",
-        "title": "Un-pin Document",
+        "command": "docs-explorer.viewer.unpin",
+        "title": "Un-pin",
         "icon": {
           "light": "./media/icons/light/unpin.svg",
           "dark": "./media/icons/dark/unpin.svg"

@@ -5,6 +5,9 @@ import * as vscode from 'vscode';
 import { MarkdownViewProvider } from './docs-explorer';
 
 export function activate(context: vscode.ExtensionContext) {
+	vscode.commands.executeCommand('setContext', 'docs-explorer.context.isPinned', false);
+	vscode.commands.executeCommand('setContext', 'docs-explorer.context.shouldAutoScroll', false);
+
 	const rootPath =
 		vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0
 		? vscode.workspace.workspaceFolders[0].uri.fsPath
@@ -37,30 +40,20 @@ export function activate(context: vscode.ExtensionContext) {
 		markdownViewProvider.update(file);
 	}));
 
-	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
-		const file = document.uri.fsPath;
-		const isMarkdown = file.endsWith('.md');
-		if (!isMarkdown) {
-			return;
-		}
-		markdownViewProvider.update(file);
+	context.subscriptions.push(vscode.commands.registerCommand('docs-explorer.viewer.pin', () => {
+		markdownViewProvider.setIsPinned(true);
 	}));
 
-	context.subscriptions.push(vscode.workspace.onDidCreateFiles((event) => {
-		const file = event.files[0].fsPath;
-		const isMarkdown = file.endsWith('.md');
-		if (!isMarkdown) {
-			return;
-		}
-		markdownViewProvider.update(file);
+	context.subscriptions.push(vscode.commands.registerCommand('docs-explorer.viewer.unpin', () => {
+		markdownViewProvider.setIsPinned(false);
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('docs-explorer.viewer.pinDocument', () => {
-		markdownViewProvider.pinDocument();
+	context.subscriptions.push(vscode.commands.registerCommand('docs-explorer.viewer.enableAutoScroll', () => {
+		markdownViewProvider.setShouldAutoScroll(true);
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('docs-explorer.viewer.unpinDocument', () => {
-		markdownViewProvider.unpinDocument();
+	context.subscriptions.push(vscode.commands.registerCommand('docs-explorer.viewer.disableAutoScroll', () => {
+		markdownViewProvider.setShouldAutoScroll(false);
 	}));
 }
 

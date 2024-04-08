@@ -8,14 +8,17 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
   private webviewView: vscode.WebviewView | undefined;
   private workspacePath: string | null = null;
   private filepath: string | null = null;
-  private nearestMarkdownFile: string | null = null;
   private isPinned: boolean = false;
   private pinnedFile: string | null = null;
+  private shouldAutoScroll: boolean = true;
 
   constructor(context: vscode.ExtensionContext, workspacePath: string | null, filepath: string | null) {
     this.extensionContext = context;
     this.workspacePath = workspacePath;
     this.filepath = filepath;
+
+    vscode.commands.executeCommand('setContext', 'docs-explorer.context.isPinned', this.isPinned);
+    vscode.commands.executeCommand('setContext', 'docs-explorer.context.shouldAutoScroll', this.shouldAutoScroll);
   }
 
   resolveWebviewView(
@@ -28,7 +31,6 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     };
     this.webviewView = webviewView;
     this.renderWebviewView();
-    vscode.commands.executeCommand('setContext', 'docs-explorer.context.isPinned', this.isPinned);
   }
 
   async renderWebviewView() {
@@ -43,15 +45,6 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     this.renderWebviewView();
   }
 
-  pinDocument() {
-    this.setIsPinned(true);
-  }
-
-  unpinDocument() {
-    this.setIsPinned(false);
-  }
-
-
   setIsPinned(state: boolean) {
     if (!this.webviewView) {
       return;
@@ -60,6 +53,12 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     this.isPinned = state;
     this.pinnedFile = this.isPinned ? this.filepath : null;
     vscode.commands.executeCommand('setContext', 'docs-explorer.context.isPinned', this.isPinned);
+    this.renderWebviewView();
+  }
+
+  setShouldAutoScroll(state: boolean) {
+    this.shouldAutoScroll = state;
+    vscode.commands.executeCommand('setContext', 'docs-explorer.context.shouldAutoScroll', this.shouldAutoScroll);
     this.renderWebviewView();
   }
 
@@ -133,13 +132,23 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     }
 
     const currFile = this.isPinned ? this.pinnedFile : this.filepath;
+    const markdownFile = this.findMarkdownFile(currFile);
 
-    this.nearestMarkdownFile = this.findMarkdownFile(currFile);
-    this.webviewView.title = this.nearestMarkdownFile ? `Document Viewer - ${this.getRelativePath(this.nearestMarkdownFile)}` : 'Document Viewer';
-    const markdownFileData = this.nearestMarkdownFile ? fs.readFileSync(this.nearestMarkdownFile, 'utf-8') : '';
-    const template = vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'templates', 'doc-viewer.html');
-    const templateStr = fs.readFileSync(template.fsPath, 'utf-8');
-    const compiledTemplate = templateStr.replace("\"${fileData}\"", JSON.stringify(markdownFileData));
+    const templatePath = vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'templates', 'doc-viewer.html');
+    const templateStr = fs.readFileSync(templatePath.fsPath, 'utf-8');
+
+    const markdownFileData = markdownFile ? fs.readFileSync(markdownFile, 'utf-8') : '';
+    const currFileRelativePath = currFile ? this.getRelativePath(currFile) : '';
+
+    const compiledTemplate = templateStr
+    .replace("\"${fileData}\"", JSON.stringify(markdownFileData))
+    .replace("\"${activeFile}\"", JSON.stringify(currFileRelativePath))
+    .replace("\"${isPinned}\"", JSON.stringify(this.isPinned))
+    .replace("\"${shouldAutoScroll}\"", JSON.stringify(this.shouldAutoScroll));
+
+    const mdRelativePath = markdownFile ? this.getRelativePath(markdownFile) : '';
+    this.webviewView.title = markdownFile ? `Document Viewer - ${mdRelativePath}` : 'Document Viewer';
+
     return compiledTemplate;
   }
 }

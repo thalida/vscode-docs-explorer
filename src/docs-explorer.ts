@@ -1,15 +1,19 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import marked from 'marked';
+import * as ejs from 'ejs';
+import { json } from 'stream/consumers';
+
 
 export class MarkdownViewProvider implements vscode.WebviewViewProvider {
+  private extensionContext: vscode.ExtensionContext | undefined;
   private webviewView: vscode.WebviewView | undefined;
   private workspacePath: string | null = null;
   private filepath: string | null = null;
   private nearestMarkdownFile: string | null = null;
 
-  constructor(workspacePath: string | null, filepath: string | null) {
+  constructor(context: vscode.ExtensionContext, workspacePath: string | null, filepath: string | null) {
+    this.extensionContext = context;
     this.workspacePath = workspacePath;
     this.filepath = filepath;
     this.nearestMarkdownFile = this.findNearestMarkdownFile(this.filepath);
@@ -27,11 +31,11 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     this.renderWebviewView();
   }
 
-  renderWebviewView() {
+  async renderWebviewView() {
     if (!this.webviewView) {
       return;
     }
-    this.webviewView.webview.html = this.getWebviewContent();
+    this.webviewView.webview.html = await this.getWebviewContent();
   }
 
   update(filepath: string | null) {
@@ -81,7 +85,7 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
   private findNearestMarkdownFileInDirectory(dirPath: string): string | null {
     let foundMarkdownFile: string | null | undefined = null;
     const files = fs.readdirSync(dirPath);
-    const readmeFile = files.find((file) => file === 'README.md');
+    const readmeFile = files.find((file) => file.toLowerCase() === 'readme.md');
 
     if (readmeFile) {
       foundMarkdownFile = readmeFile;
@@ -96,21 +100,16 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     return null;
   }
 
-  getWebviewContent() {
-    const fileContents = this.nearestMarkdownFile ? fs.readFileSync(this.nearestMarkdownFile, 'utf-8') : '';
-    const markdown = marked.parse(fileContents);
-    return `<!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body>
-      <main>
-        ${markdown}
-      </main>
-    </body>
-    </html>`;
+  async getWebviewContent() {
+    if (!this.extensionContext) {
+      return '';
+    }
+
+    const markdownFileData = this.nearestMarkdownFile ? fs.readFileSync(this.nearestMarkdownFile, 'utf-8') : '';
+    const template = vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'templates', 'doc-viewer.html');
+    const templateStr = fs.readFileSync(template.fsPath, 'utf-8');
+    const compiledTemplate = templateStr.replace("\"${fileData}\"", JSON.stringify(markdownFileData));
+    return compiledTemplate;
   }
 
 }

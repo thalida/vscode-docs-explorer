@@ -13,6 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const activePath = vscode.window.activeTextEditor?.document.uri.fsPath || rootPath;
 
 	const markdownViewProvider = new MarkdownViewProvider(
+		context,
 		rootPath,
 		activePath
 	);

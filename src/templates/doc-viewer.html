@@ -55,11 +55,15 @@
 
         if (injectedContext.shouldAutoScroll) {
           const $captions = $content.querySelectorAll('figure.preview > figcaption');
-          if ($captions.length > 0) {
-            const activeCaption = Array.from($captions).find(caption => caption.textContent.toLowerCase() === injectedContext.activeFile.toLowerCase());
-            if (activeCaption) {
-              activeCaption.scrollIntoView();
-            }
+          const $headers = $content.querySelectorAll('h1, h2, h3, h4, h5, h6');
+
+          const foundMatchingHeader = Array.from($headers).find(header => header.textContent.toLowerCase() === injectedContext.activeFile.toLowerCase());
+          const foundMatchingCaption = Array.from($captions).find(caption => caption.textContent.toLowerCase() === injectedContext.activeFile.toLowerCase());
+
+          if (foundMatchingHeader) {
+            foundMatchingHeader.scrollIntoView();
+          } else if (foundMatchingCaption) {
+            foundMatchingCaption.scrollIntoView();
           }
         }
 

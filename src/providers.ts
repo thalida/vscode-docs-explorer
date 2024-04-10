@@ -141,10 +141,10 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     const currFileRelativePath = currFile ? this.getRelativePath(currFile) : '';
 
     const compiledTemplate = templateStr
-    .replace("\"${fileData}\"", JSON.stringify(markdownFileData))
-    .replace("\"${activeFile}\"", JSON.stringify(currFileRelativePath))
-    .replace("\"${isPinned}\"", JSON.stringify(this.isPinned))
-    .replace("\"${shouldAutoScroll}\"", JSON.stringify(this.shouldAutoScroll));
+      .replace('"${fileData}"', JSON.stringify(markdownFileData))
+      .replace('"${activeFile}"', JSON.stringify(currFileRelativePath))
+      .replace('"${isPinned}"', JSON.stringify(this.isPinned))
+      .replace('"${shouldAutoScroll}"', JSON.stringify(this.shouldAutoScroll));
 
     const mdRelativePath = markdownFile ? this.getRelativePath(markdownFile) : '';
     this.webviewView.title = markdownFile ? `Document Viewer - ${mdRelativePath}` : 'Document Viewer';

@@ -2,7 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-import { MarkdownViewProvider } from './docs-explorer';
+import { MarkdownViewProvider } from './providers';
 
 export function activate(context: vscode.ExtensionContext) {
 	vscode.commands.executeCommand('setContext', 'docs-explorer.context.isPinned', false);
@@ -13,12 +13,12 @@ export function activate(context: vscode.ExtensionContext) {
 		? vscode.workspace.workspaceFolders[0].uri.fsPath
 		: null;
 
-	const activePath = vscode.window.activeTextEditor?.document.uri.fsPath || rootPath;
+	const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath || rootPath;
 
 	const markdownViewProvider = new MarkdownViewProvider(
 		context,
 		rootPath,
-		activePath
+		activeFile
 	);
 
 	context.subscriptions.push(vscode.window.registerWebviewViewProvider(

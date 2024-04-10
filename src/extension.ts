@@ -40,6 +40,13 @@ export function activate(context: vscode.ExtensionContext) {
 		markdownViewProvider.update(file);
 	}));
 
+	context.subscriptions.push(vscode.commands.registerCommand('docs-explorer.viewer.edit', () => {
+		if (!markdownViewProvider.renderedFile) {
+			return;
+		}
+		vscode.window.showTextDocument(vscode.Uri.file(markdownViewProvider.renderedFile));
+	}));
+
 	context.subscriptions.push(vscode.commands.registerCommand('docs-explorer.viewer.pin', () => {
 		markdownViewProvider.setIsPinned(true);
 	}));

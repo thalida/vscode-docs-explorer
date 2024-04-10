@@ -1,0 +1,89 @@
+ <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css" integrity="sha512-dSQLLtgaq2iGigmy9xowRshaMzUHeiIUTvJW/SkUpb1J+ImXOPNGAI7ZC8V5/PiN/XN83B8uIk4qET7AMhdC5Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js" integrity="sha512-ZCsRHqhdDXrq4iTXVZLkGBsOfDlvhvHhEMQlCosf9Oqy1p6xizF1LSWa6uuISGqeh9PmCzfneGcYZvc9t/hjaQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moo/moo.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/json-loose/dist/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/attributes-parser/dist/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked-code-preview/dist/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked-highlight/lib/index.umd.js"></script>
+
+    <style>
+      .is-hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div id="content"></div>
+      <div id="empty-state" class="is-hidden">
+        <p>No file selected</p>
+      </div>
+      <script>
+        function render(context) {
+          const $content = document.getElementById('content');
+          const $emptyState = document.getElementById('empty-state');
+
+          if (!context.hasRenderedFile) {
+            $emptyState.classList.remove('is-hidden');
+            $content.classList.add('is-hidden');
+            return;
+          }
+
+          const { markedHighlight } = globalThis.markedHighlight;
+          const customTemplate = `
+          <figure class="preview">
+            <figcaption>{title}</figcaption>
+            <div class="preview-code">{code}</div>
+          </figure>
+          `;
+          const markdownHTML = (
+            new marked.Marked()
+              .use({ gfm: true })
+              .use(markedCodePreview({ template: customTemplate }))
+              .use(markedHighlight({
+                langPrefix: 'hljs language-',
+                highlight(code, lang, info) {
+                  const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                  return hljs.highlight(code, { language }).value;
+                }
+              }))
+              .parse(context.fileData)
+          );
+          const santizedHTML = DOMPurify.sanitize(markdownHTML);
+          $content.innerHTML = santizedHTML;
+          $emptyState.classList.add('is-hidden');
+          $content.classList.remove('is-hidden');
+
+          if (context.shouldAutoScroll) {
+            const $captions = $content.querySelectorAll('figure.preview > figcaption');
+            const $headers = $content.querySelectorAll('h1, h2, h3, h4, h5, h6');
+
+            const foundMatchingHeader = Array.from($headers).find(header => header.textContent.toLowerCase() === context.activeFile.toLowerCase());
+            const foundMatchingCaption = Array.from($captions).find(caption => caption.textContent.toLowerCase() === context.activeFile.toLowerCase());
+
+            if (foundMatchingHeader) {
+              foundMatchingHeader.scrollIntoView();
+            } else if (foundMatchingCaption) {
+              foundMatchingCaption.scrollIntoView();
+            }
+          }
+        }
+      </script>
+      <script>
+        const globalContext = "${context}";
+        render(globalContext)
+      </script>
+    </main>
+  </body>
+</html>

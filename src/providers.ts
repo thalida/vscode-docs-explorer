@@ -11,6 +11,8 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
   private isPinned: boolean = false;
   private pinnedFile: string | null = null;
   private shouldAutoScroll: boolean = true;
+  renderedFile: string | null = null;
+  private hasRenderedFile: boolean = false;
 
   constructor(context: vscode.ExtensionContext, workspacePath: string | null, filepath: string | null) {
     this.extensionContext = context;
@@ -19,6 +21,7 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
 
     vscode.commands.executeCommand('setContext', 'docs-explorer.context.isPinned', this.isPinned);
     vscode.commands.executeCommand('setContext', 'docs-explorer.context.shouldAutoScroll', this.shouldAutoScroll);
+    vscode.commands.executeCommand('setContext', 'docs-explorer.context.hasRenderedFile', this.hasRenderedFile);
   }
 
   resolveWebviewView(
@@ -134,20 +137,28 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     const currFile = this.isPinned ? this.pinnedFile : this.filepath;
     const markdownFile = this.findMarkdownFile(currFile);
 
-    const templatePath = vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'templates', 'doc-viewer.html');
+    const templatePath = vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'templates', 'markdown-viewer.html');
     const templateStr = fs.readFileSync(templatePath.fsPath, 'utf-8');
 
     const markdownFileData = markdownFile ? fs.readFileSync(markdownFile, 'utf-8') : '';
     const currFileRelativePath = currFile ? this.getRelativePath(currFile) : '';
 
-    const compiledTemplate = templateStr
-      .replace('"${fileData}"', JSON.stringify(markdownFileData))
-      .replace('"${activeFile}"', JSON.stringify(currFileRelativePath))
-      .replace('"${isPinned}"', JSON.stringify(this.isPinned))
-      .replace('"${shouldAutoScroll}"', JSON.stringify(this.shouldAutoScroll));
+    const context = {
+      fileData: markdownFileData,
+      activeFile: currFileRelativePath,
+      isPinned: this.isPinned,
+      shouldAutoScroll: this.shouldAutoScroll,
+      hasRenderedFile: markdownFile ? true : false
+    };
+
+    const compiledTemplate = templateStr.replace('"${context}"', JSON.stringify(context));
 
     const mdRelativePath = markdownFile ? this.getRelativePath(markdownFile) : '';
+
+    this.renderedFile = markdownFile;
+    this.hasRenderedFile = markdownFile ? true : false;
     this.webviewView.title = markdownFile ? `Document Viewer - ${mdRelativePath}` : 'Document Viewer';
+    vscode.commands.executeCommand('setContext', 'docs-explorer.context.hasRenderedFile', this.hasRenderedFile);
 
     return compiledTemplate;
   }

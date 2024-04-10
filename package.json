@@ -24,28 +24,41 @@
     "menus": {
       "view/title": [
         {
-          "command": "docs-explorer.viewer.enableAutoScroll",
-          "when": "view == docs-explorer.viewer && docs-explorer.context.shouldAutoScroll === false",
+          "command": "docs-explorer.viewer.edit",
+          "when": "view == docs-explorer.viewer && docs-explorer.context.hasRenderedFile === true",
           "group": "navigation@1"
         },
         {
+          "command": "docs-explorer.viewer.enableAutoScroll",
+          "when": "view == docs-explorer.viewer && docs-explorer.context.hasRenderedFile === true && docs-explorer.context.shouldAutoScroll === false",
+          "group": "navigation@2"
+        },
+        {
           "command": "docs-explorer.viewer.disableAutoScroll",
-          "when": "view == docs-explorer.viewer && docs-explorer.context.shouldAutoScroll === true",
+          "when": "view == docs-explorer.viewer && docs-explorer.context.hasRenderedFile === true && docs-explorer.context.shouldAutoScroll === true",
           "group": "navigation@2"
         },
         {
           "command": "docs-explorer.viewer.pin",
-          "when": "view == docs-explorer.viewer && docs-explorer.context.isPinned === false",
+          "when": "view == docs-explorer.viewer && docs-explorer.context.hasRenderedFile === true && docs-explorer.context.isPinned === false",
           "group": "navigation@3"
         },
         {
           "command": "docs-explorer.viewer.unpin",
-          "when": "view == docs-explorer.viewer && docs-explorer.context.isPinned === true",
-          "group": "navigation@4"
+          "when": "view == docs-explorer.viewer && docs-explorer.context.hasRenderedFile === true && docs-explorer.context.isPinned === true",
+          "group": "navigation@3"
         }
       ]
     },
     "commands": [
+      {
+        "command": "docs-explorer.viewer.edit",
+        "title": "Edit",
+        "icon": {
+          "light": "./media/icons/light/edit.svg",
+          "dark": "./media/icons/dark/edit.svg"
+        }
+      },
       {
         "command": "docs-explorer.viewer.enableAutoScroll",
         "title": "Auto-scroll",

@@ -36,11 +36,22 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     this.renderWebviewView();
   }
 
-  async renderWebviewView() {
+  renderWebviewView() {
     if (!this.webviewView) {
       return;
     }
-    this.webviewView.webview.html = await this.getWebviewContent();
+
+    const currFile = this.isPinned ? this.pinnedFile : this.filepath;
+    const markdownFile = this.findMarkdownFile(currFile);
+    const mdRelativePath = markdownFile ? this.getRelativePath(markdownFile) : '';
+
+    this.renderedFile = markdownFile;
+    this.hasRenderedFile = markdownFile ? true : false;
+
+    this.webviewView.title = markdownFile ? `Document Viewer - ${mdRelativePath}` : 'Document Viewer';
+    this.webviewView.webview.html = this.getWebviewContent(currFile, markdownFile);
+
+    vscode.commands.executeCommand('setContext', 'docs-explorer.context.hasRenderedFile', this.hasRenderedFile);
   }
 
   update(filepath: string | null) {
@@ -129,13 +140,10 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
     return path.relative(this.workspacePath, filepath);
   }
 
-  async getWebviewContent() {
+  getWebviewContent(currFile: string | null, markdownFile: string | null) {
     if (!this.extensionContext || !this.webviewView) {
       return '';
     }
-
-    const currFile = this.isPinned ? this.pinnedFile : this.filepath;
-    const markdownFile = this.findMarkdownFile(currFile);
 
     const templatePath = vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'templates', 'markdown-viewer.html');
     const templateStr = fs.readFileSync(templatePath.fsPath, 'utf-8');
@@ -151,15 +159,6 @@ export class MarkdownViewProvider implements vscode.WebviewViewProvider {
       hasRenderedFile: markdownFile ? true : false
     };
 
-    const compiledTemplate = templateStr.replace('"${context}"', JSON.stringify(context));
-
-    const mdRelativePath = markdownFile ? this.getRelativePath(markdownFile) : '';
-
-    this.renderedFile = markdownFile;
-    this.hasRenderedFile = markdownFile ? true : false;
-    this.webviewView.title = markdownFile ? `Document Viewer - ${mdRelativePath}` : 'Document Viewer';
-    vscode.commands.executeCommand('setContext', 'docs-explorer.context.hasRenderedFile', this.hasRenderedFile);
-
-    return compiledTemplate;
+    return templateStr.replace('"${context}"', JSON.stringify(context));
   }
 }

@@ -74,8 +74,8 @@
         "command": "docs-explorer.viewer.unpin",
         "title": "Un-pin",
         "icon": {
-          "light": "./media/icons/light/unpin.svg",
-          "dark": "./media/icons/dark/unpin.svg"
+          "light": "./media/icons/light/pin-selected.svg",
+          "dark": "./media/icons/dark/pin-selected.svg"
         }
       }
     ]
